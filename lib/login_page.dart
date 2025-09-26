@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,36 +19,48 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _loading = true);
 
     try {
-      final uri = Uri.parse('http://localhost:80/api/login.php');
-      final res = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': _emailCtrl.text.trim(),
-          'password': _passCtrl.text.trim(),
-        }),
-      );
+      final uri = Uri.parse('http://localhost/api/login.php');
 
-      print('Status: ${res.statusCode}');
-      print('Body: ${res.body}');
+      // Enviar datos como x-www-form-urlencoded para que PHP los lea correctamente
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: {
+              'email': _emailCtrl.text.trim(),
+              'password': _passCtrl.text.trim(),
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bienvenido ${data['nombre']}')),
-        );
-        // Navega a la pantalla que quieras
-        Navigator.pushReplacementNamed(context, '/home');
+
+        if (data['msg'] == 'Login correcto') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Bienvenido ${data['user']['nombre']}')),
+          );
+
+          Navigator.pushReplacementNamed(context, "/home");
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['msg'])),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${res.body}')),
+          SnackBar(content: Text('Error en el servidor: ${res.statusCode}')),
         );
       }
+    } on TimeoutException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tiempo de espera agotado')),
+      );
     } catch (e) {
-      print('Excepción: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sin conexión: $e')),
       );
@@ -69,37 +82,30 @@ class _LoginPageState extends State<LoginPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Hero con imagen de respaldo
+            // 👇 Imagen de inicio
             Container(
               height: 220,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/perrito4.jpg'),
-                  fit: BoxFit.cover,
-                  onError: (_, __) => AssetImage('assets/images/gato1.jpg'),
-                ),
-              ),
-              child: Container(
-                color: Colors.black38,
-                child: const Center(
-                  child: Text(
-                    '¡Bienvenido a AdoptPets!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+              width: double.infinity,
+              child: Image.asset(
+                'assets/images/Animales_inicio.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Text(
+                      'Imagen no disponible',
+                      style: TextStyle(color: Colors.red),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Correo
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
@@ -111,7 +117,6 @@ class _LoginPageState extends State<LoginPage> {
                           val!.isEmpty ? 'Campo obligatorio' : null,
                     ),
                     const SizedBox(height: 16),
-                    // Contraseña
                     TextFormField(
                       controller: _passCtrl,
                       obscureText: _obscure,
@@ -122,27 +127,13 @@ class _LoginPageState extends State<LoginPage> {
                           icon: Icon(_obscure
                               ? Icons.visibility_off
                               : Icons.visibility),
-                          onPressed: () =>
-                              setState(() => _obscure = !_obscure),
+                          onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
-                      validator: (val) => val!.length < 6
-                          ? 'Mínimo 6 caracteres'
-                          : null,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text('¿Olvidaste tu contraseña?',
-                              style: TextStyle(color: Colors.grey)),
-                        ),
-                      ],
+                      validator: (val) =>
+                          val!.length < 6 ? 'Mínimo 6 caracteres' : null,
                     ),
                     const SizedBox(height: 24),
-                    // Botón ingresar
                     SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -156,32 +147,14 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: _loading ? null : _login,
                         child: _loading
                             ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text('Iniciar sesión',
-                                style: TextStyle(fontSize: 18)),
+                            : const Text(
+                                'Iniciar sesión',
+                                style: TextStyle(fontSize: 18),
+                              ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('¿No tienes cuenta?'),
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text('Regístrate',
-                              style: TextStyle(color: Color(0xFF4CAF50))),
-                        ),
-                      ],
                     ),
                   ],
                 ),
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              color: Colors.grey[200],
-              padding: const EdgeInsets.all(20),
-              child: const Center(
-                child: Text('© 2025 AdoptPets - Todos los derechos reservados'),
               ),
             ),
           ],
