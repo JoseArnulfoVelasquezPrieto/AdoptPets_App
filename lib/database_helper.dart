@@ -40,14 +40,14 @@ class DatabaseHelper {
         'raza': 'Criollo',
         'color': 'Marrón',
         'imagen': 'assets/images/perro2.jpg',
-        'estado': 'Disponible', // ✅ Cambiado para pruebas
+        'estado': 'Disponible',
       });
       mascotasBox.add({
         'nombre': 'Bella',
         'especie': 'Perro',
         'raza': 'Criolla',
         'color': 'Blanco',
-        'imagen': 'assets/images/perro3.jpg', // ✅ Asegúrate de que exista
+        'imagen': 'assets/images/perro3.jpg',
         'estado': 'Disponible',
       });
       mascotasBox.add({
@@ -83,6 +83,16 @@ class DatabaseHelper {
         'imagen': 'assets/images/refugio2.jpg',
       });
     }
+
+    // ✅ Usuario de prueba
+    var usuariosBox = await Hive.openBox('usuarios');
+    if (usuariosBox.isEmpty) {
+      usuariosBox.add({
+        'email': 'jose@gmail.com',
+        'password': 'Colombia123*',
+        'nombre': 'Jose',
+      });
+    }
   }
 
   static List<Mascota> getMascotas() {
@@ -99,7 +109,6 @@ class DatabaseHelper {
         .toList();
   }
 
-  // ✅ Guardar solicitud de adopción
   static Future<void> saveSolicitud(Map<String, dynamic> solicitud) async {
     var box = Hive.box('solicitudes');
     await box.add(solicitud);

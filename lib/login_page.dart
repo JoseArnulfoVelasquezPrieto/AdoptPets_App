@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:async';
+import 'package:hive/hive.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,51 +20,28 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _loading = true);
 
-    try {
-      final uri = Uri.parse('http://localhost/api/login.php');
+    final email = _emailCtrl.text.trim();
+    final password = _passCtrl.text.trim();
 
-      // Enviar datos como x-www-form-urlencoded para que PHP los lea correctamente
-      final res = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: {
-              'email': _emailCtrl.text.trim(),
-              'password': _passCtrl.text.trim(),
-            },
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-
-        if (data['msg'] == 'Login correcto') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Bienvenido ${data['user']['nombre']}')),
-          );
-
-          Navigator.pushReplacementNamed(context, "/home");
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['msg'])),
-          );
-        }
-      } else {
+    // ✅ Login local con Hive
+    final usuariosBox = Hive.box('usuarios');
+    for (final u in usuariosBox.values) {
+      final user = Map<String, dynamic>.from(u);
+      if (user['email'] == email && user['password'] == password) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error en el servidor: ${res.statusCode}')),
+          SnackBar(content: Text('Bienvenido ${user['nombre']}')),
         );
+        Navigator.pushReplacementNamed(context, "/home");
+        setState(() => _loading = false);
+        return;
       }
-    } on TimeoutException {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tiempo de espera agotado')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sin conexión: $e')),
-      );
-    } finally {
-      setState(() => _loading = false);
     }
+
+    // ❌ Credenciales incorrectas
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Usuario o contraseña incorrectos')),
+    );
+    setState(() => _loading = false);
   }
 
   @override
@@ -82,7 +57,6 @@ class _LoginPageState extends State<LoginPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 👇 Imagen de inicio
             Container(
               height: 220,
               width: double.infinity,
@@ -99,7 +73,6 @@ class _LoginPageState extends State<LoginPage> {
                 },
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Form(
