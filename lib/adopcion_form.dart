@@ -19,10 +19,12 @@ class _AdopcionFormPageState extends State<AdopcionFormPage> {
   final _ingresosCtrl = TextEditingController();
   final _tiempoCtrl = TextEditingController();
   final _motivoCtrl = TextEditingController();
+  bool _loading = false;
 
   void _enviarSolicitud() async {
     if (_formKey.currentState!.validate()) {
-      // Crear mapa de la solicitud
+      setState(() => _loading = true);
+
       final solicitud = {
         'mascota': widget.mascota.nombre,
         'nombre': _nombreCtrl.text.trim(),
@@ -33,25 +35,93 @@ class _AdopcionFormPageState extends State<AdopcionFormPage> {
         'motivo': _motivoCtrl.text.trim(),
       };
 
-      // Guardar en Hive y actualizar estado de la mascota
       await DatabaseHelper.saveSolicitud(solicitud);
 
-      // Mostrar alerta y redirigir a HomePage
+      setState(() => _loading = false);
+
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Solicitud enviada'),
-          content: const Text('Tu solicitud de adopción ha sido enviada.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Cierra el diálogo
-                Navigator.pushNamedAndRemoveUntil(
-                    context, '/home', (route) => false); // Va a HomePage
-              },
-              child: const Text('Aceptar'),
+        barrierDismissible: false,
+        builder: (_) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: Color(0xFF4CAF50),
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  '¡Solicitud Enviada!',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2E7D32),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Tu solicitud de adopción para ${widget.mascota.nombre} ha sido enviada exitosamente.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey[700],
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Nos pondremos en contacto contigo pronto.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamedAndRemoveUntil(
+                          context, '/home', (route) => false);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Volver al inicio',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       );
     }
@@ -60,127 +130,430 @@ class _AdopcionFormPageState extends State<AdopcionFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Formulario de Adopción'),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F5E9),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Color(0xFF4CAF50),
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        title: const Text(
+          'Adopción',
+          style: TextStyle(
+            color: Color(0xFF2E7D32),
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
           children: [
-            // 🐾 Lado izquierdo: Imagen y datos de la mascota
-            Expanded(
-              flex: 1,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  widget.mascota.imagen != null
-                      ? Image.asset(
-                          widget.mascota.imagen!,
-                          fit: BoxFit.cover,
-                          height: 300,
-                          width: double.infinity,
-                        )
-                      : const Icon(Icons.pets, size: 150, color: Colors.green),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.mascota.nombre,
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
+            // Tarjeta moderna de información de la mascota
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF4CAF50),
+                    const Color(0xFF66BB6A),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4CAF50).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
-                  Text("${widget.mascota.especie} - ${widget.mascota.raza}"),
-                  Text("Color: ${widget.mascota.color}"),
-                  Text("Estado: ${widget.mascota.estado}"),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Imagen de la mascota
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    child: widget.mascota.imagen != null
+                        ? Image.asset(
+                            widget.mascota.imagen!,
+                            fit: BoxFit.cover,
+                            height: 280,
+                            width: double.infinity,
+                          )
+                        : Container(
+                            height: 280,
+                            color: Colors.white.withOpacity(0.2),
+                            child: const Icon(
+                              Icons.pets,
+                              size: 100,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+
+                  // Información con diseño moderno
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(24),
+                        bottomRight: Radius.circular(24),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.mascota.nombre,
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2E7D32),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F5E9),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                widget.mascota.estado,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4CAF50),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildModernInfoChip(
+                                icon: Icons.pets,
+                                label: widget.mascota.especie,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildModernInfoChip(
+                                icon: Icons.category,
+                                label: widget.mascota.raza,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildModernInfoChip(
+                          icon: Icons.palette,
+                          label: widget.mascota.color,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
 
-            const SizedBox(width: 32),
+            const SizedBox(height: 28),
 
-            // 📝 Lado derecho: Formulario
-            Expanded(
-              flex: 1,
+            // Formulario moderno
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(24),
               child: Form(
                 key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _nombreCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Nombre',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (val) =>
-                            val!.isEmpty ? 'Campo obligatorio' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _telefonoCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Teléfono',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (val) =>
-                            val!.isEmpty ? 'Campo obligatorio' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _direccionCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Dirección',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (val) =>
-                            val!.isEmpty ? 'Campo obligatorio' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _ingresosCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Ingresos mensuales \$',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _tiempoCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Tiempo disponible para el animal',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _motivoCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Motivo de adopción',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 5,
-                        validator: (val) =>
-                            val!.isEmpty ? 'Campo obligatorio' : null,
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          onPressed: _enviarSolicitud,
-                          child: const Text('Enviar solicitud'),
+                          child: const Icon(
+                            Icons.edit_document,
+                            color: Color(0xFF4CAF50),
+                            size: 24,
+                          ),
                         ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Formulario de Adopción',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E7D32),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Complete la información para adoptar a ${widget.mascota.nombre}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    _buildModernTextField(
+                      controller: _nombreCtrl,
+                      label: 'Nombre completo',
+                      icon: Icons.person_outline,
+                      hint: 'Ingrese su nombre completo',
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildModernTextField(
+                      controller: _telefonoCtrl,
+                      label: 'Teléfono',
+                      icon: Icons.phone_outlined,
+                      hint: 'Número de contacto',
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildModernTextField(
+                      controller: _direccionCtrl,
+                      label: 'Dirección',
+                      icon: Icons.home_outlined,
+                      hint: 'Dirección de residencia',
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildModernTextField(
+                      controller: _ingresosCtrl,
+                      label: 'Ingresos mensuales (opcional)',
+                      icon: Icons.attach_money,
+                      hint: 'Ej: 2000',
+                      keyboardType: TextInputType.number,
+                      required: false,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildModernTextField(
+                      controller: _tiempoCtrl,
+                      label: 'Tiempo disponible (opcional)',
+                      icon: Icons.schedule,
+                      hint: 'Ej: 4 horas al día',
+                      required: false,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildModernTextField(
+                      controller: _motivoCtrl,
+                      label: 'Motivo de adopción',
+                      icon: Icons.favorite_outline,
+                      hint: 'Cuéntanos por qué quieres adoptar',
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Botón enviar moderno
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4CAF50),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _loading ? null : _enviarSolicitud,
+                        child: _loading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.send, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Enviar solicitud',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildModernInfoChip({
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey[300]!,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: const Color(0xFF4CAF50),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF424242),
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required String hint,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    bool required = true,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF424242),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            style: const TextStyle(
+              fontSize: 15,
+              color: Color(0xFF212121),
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14,
+              ),
+              prefixIcon: Icon(
+                icon,
+                color: const Color(0xFF4CAF50),
+                size: 22,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+            ),
+            validator: (val) =>
+                required && (val == null || val.isEmpty) ? 'Campo obligatorio' : null,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _telefonoCtrl.dispose();
+    _direccionCtrl.dispose();
+    _ingresosCtrl.dispose();
+    _tiempoCtrl.dispose();
+    _motivoCtrl.dispose();
+    super.dispose();
   }
 }

@@ -1,4 +1,3 @@
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/mascota.dart';
 import 'models/refugio.dart';
@@ -88,9 +87,9 @@ class DatabaseHelper {
     var usuariosBox = await Hive.openBox('usuarios');
     if (usuariosBox.isEmpty) {
       usuariosBox.add({
-        'email': 'jose@gmail.com',
-        'password': 'Colombia123*',
-        'nombre': 'Jose',
+        'email': 'admin',
+        'password': 'admin123',
+        'nombre': 'admin',
       });
     }
   }
